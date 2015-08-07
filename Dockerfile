@@ -2,6 +2,18 @@ FROM docker.io/java:8
 MAINTAINER Paulo Borges <paulo@simbioseventures.com>
 
 ################################################################################
+# Maven
+
+ENV MVN_TGZ http://www.us.apache.org/dist/maven/maven-3/3.3.3/binaries/apache-maven-3.3.3-bin.tar.gz
+ENV PATH /opt/maven/bin:$PATH
+
+RUN mkdir -p /opt/maven                                             && \
+    cd /opt/maven                                                   && \
+    curl -o maven.tar.gz $MVN_TGZ                                   && \
+    tar -xf maven.tar.gz --strip-components=1                       && \
+    rm maven.tar.gz
+
+################################################################################
 # From tomcat:7-jre8 image
 # We need JDK to build our application but tomcat's images only provide JRE.
 
@@ -38,17 +50,17 @@ RUN set -x \
     && rm bin/*.bat \
     && rm tomcat.tar.gz*
 
-EXPOSE 8080
+COPY entrypoint.sh $CATALINA_HOME/entrypoint.sh
+
+ENV CATALINA_OPTS_BASE                                 "\
+    -server                                             \
+    -Djava.security.egd=file:/dev/./urandom             \
+    -Dcom.sun.management.jmxremote.port=9012            \
+    -Dcom.sun.management.jmxremote.ssl=false            \
+    -Dcom.sun.management.jmxremote.authenticate=false   \
+    "
+
+EXPOSE 8080 9012
+
+ENTRYPOINT ["/usr/local/tomcat/entrypoint.sh"]
 CMD ["catalina.sh", "run"]
-
-################################################################################
-# Maven
-
-ENV MVN_TGZ http://www.us.apache.org/dist/maven/maven-3/3.3.3/binaries/apache-maven-3.3.3-bin.tar.gz
-ENV PATH /opt/maven/bin:$PATH
-
-RUN mkdir -p /opt/maven                                             && \
-    cd /opt/maven                                                   && \
-    curl -o maven.tar.gz $MVN_TGZ                                   && \
-    tar -xf maven.tar.gz --strip-components=1                       && \
-    rm maven.tar.gz
